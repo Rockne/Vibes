@@ -1,0 +1,313 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Dashboard - AI Usage Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-speedometer2"></i> My AI Usage Dashboard
+    </h1>
+    <a href="{% url 'dashboard:log_usage' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Log New Usage
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ total_usage }}</div>
+            <div class="stat-label">Total Usage</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ today_usage }}</div>
+            <div class="stat-label">Today</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ week_usage }}</div>
+            <div class="stat-label">This Week</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="stat-value">{{ month_usage }}</div>
+            <div class="stat-label">This Month</div>
+        </div>
+    </div>
+</div>
+
+<!-- Compliance Status -->
+{% if compliance_status %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-shield-check"></i> Compliance Status
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h3 class="compliance-{{ compliance_status.level }}">
+                            {{ compliance_status.level|title }}
+                        </h3>
+                        <p class="mb-0">You are {{ compliance_status.percentage }}% compliant with the current AI ethics policy.</p>
+                        <small class="text-muted">Policy: {{ compliance_status.policy.title }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar 
+                                {% if compliance_status.percentage >= 90 %}bg-success
+                                {% elif compliance_status.percentage >= 75 %}bg-info
+                                {% elif compliance_status.percentage >= 50 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                role="progressbar" 
+                                style="width: {{ compliance_status.percentage }}%"
+                                aria-valuenow="{{ compliance_status.percentage }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ compliance_status.percentage }}%
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Daily Limit: {{ compliance_status.policy.max_daily_usage }} | 
+                                Weekly Limit: {{ compliance_status.policy.max_weekly_usage }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Charts -->
+<div class="row mb-4">
+    <!-- Daily Usage Trend -->
+    <div class="col-lg-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> Usage Trend (Last 30 Days)
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dailyUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usage by Tool -->
+    <div class="col-lg-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-pie-chart"></i> Usage by AI Tool
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="toolUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Usage by Type -->
+    <div class="col-lg-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> Usage by Type
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="typeUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Insights -->
+    <div class="col-lg-4 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-lightbulb"></i> Recent Insights</span>
+                <a href="{% url 'dashboard:insights' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if unread_insights %}
+                    {% for insight in unread_insights %}
+                    <div class="insight-card card mb-2 border-start border-4 priority-{{ insight.priority }}">
+                        <div class="card-body p-2">
+                            <h6 class="card-title mb-1">{{ insight.title }}</h6>
+                            <p class="card-text small mb-0">{{ insight.message|truncatewords:15 }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">No new insights available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history"></i> Recent Activity</span>
+                <a href="{% url 'dashboard:usage_history' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>AI Tool</th>
+                                <th>Usage Type</th>
+                                <th>Duration</th>
+                                <th>Compliance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td>{{ log.timestamp|date:"M d, Y H:i" }}</td>
+                                <td><span class="badge bg-secondary">{{ log.get_ai_tool_display }}</span></td>
+                                <td>{{ log.get_usage_type_display }}</td>
+                                <td>{{ log.duration_minutes }} min</td>
+                                <td>
+                                    {% if log.is_compliant %}
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-circle-fill text-danger"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No recent activity. <a href="{% url 'dashboard:log_usage' %}">Log your first AI usage</a>!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Parse data from Django
+    const dailyUsageData = JSON.parse('{{ daily_usage|safe }}');
+    const usageByTool = JSON.parse('{{ usage_by_tool|safe }}');
+    const usageByType = JSON.parse('{{ usage_by_type|safe }}');
+    
+    // Daily Usage Line Chart
+    const dailyCtx = document.getElementById('dailyUsageChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: dailyUsageData.map(d => d.date),
+            datasets: [{
+                label: 'AI Interactions',
+                data: dailyUsageData.map(d => d.count),
+                borderColor: 'rgb(79, 70, 229)',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    
+    // Usage by Tool Pie Chart
+    if (usageByTool.length > 0) {
+        const toolCtx = document.getElementById('toolUsageChart').getContext('2d');
+        new Chart(toolCtx, {
+            type: 'doughnut',
+            data: {
+                labels: usageByTool.map(t => t.ai_tool),
+                datasets: [{
+                    data: usageByTool.map(t => t.count),
+                    backgroundColor: [
+                        'rgba(79, 70, 229, 0.8)',
+                        'rgba(124, 58, 237, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Usage by Type Bar Chart
+    if (usageByType.length > 0) {
+        const typeCtx = document.getElementById('typeUsageChart').getContext('2d');
+        new Chart(typeCtx, {
+            type: 'bar',
+            data: {
+                labels: usageByType.map(t => t.usage_type.replace('_', ' ')),
+                datasets: [{
+                    label: 'Count',
+                    data: usageByType.map(t => t.count),
+                    backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

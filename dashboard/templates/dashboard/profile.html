@@ -1,0 +1,160 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Profile - AI Usage Platform{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-person"></i> My Profile
+    </h1>
+    <a href="{% url 'dashboard:export_data' %}" class="btn btn-outline-primary">
+        <i class="bi bi-download"></i> Export My Data
+    </a>
+</div>
+
+<div class="row">
+    <!-- Profile Form -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Profile Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Username:</strong></label>
+                            <p>{{ user.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><strong>Email:</strong></label>
+                            <p>{{ user.email }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.student_id.id_for_label }}" class="form-label">Student ID</label>
+                            {{ form.student_id }}
+                            {% if form.student_id.errors %}
+                                <div class="text-danger small">{{ form.student_id.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.department.id_for_label }}" class="form-label">Department</label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="text-danger small">{{ form.department.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="mb-3">Privacy & Preferences</h6>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.data_collection_consent }}
+                        <label class="form-check-label" for="{{ form.data_collection_consent.id_for_label }}">
+                            I consent to data collection for usage tracking
+                        </label>
+                        <div class="form-text">{{ form.data_collection_consent.help_text }}</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.allow_analytics }}
+                        <label class="form-check-label" for="{{ form.allow_analytics.id_for_label }}">
+                            Allow usage analytics
+                        </label>
+                        <div class="form-text">{{ form.allow_analytics.help_text }}</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.email_notifications }}
+                        <label class="form-check-label" for="{{ form.email_notifications.id_for_label }}">
+                            Receive email notifications
+                        </label>
+                        <div class="form-text">{{ form.email_notifications.help_text }}</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.weekly_summary }}
+                        <label class="form-check-label" for="{{ form.weekly_summary.id_for_label }}">
+                            Receive weekly usage summary
+                        </label>
+                        <div class="form-text">{{ form.weekly_summary.help_text }}</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Usage Summary -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Usage Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-muted">Total AI Interactions:</span>
+                    <strong class="h4 mb-0 text-primary">{{ usage_summary.total }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">This Week:</span>
+                    <strong class="h4 mb-0 text-success">{{ usage_summary.this_week }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">Account Information</h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">
+                    <strong>Member since:</strong><br>
+                    {{ user.date_joined|date:"F d, Y" }}
+                </p>
+                <p class="small mb-0">
+                    <strong>Profile created:</strong><br>
+                    {{ profile.created_at|date:"F d, Y" }}
+                </p>
+            </div>
+        </div>
+        
+        <!-- GDPR Compliance -->
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-shield-check"></i> GDPR Compliance</h6>
+            </div>
+            <div class="card-body">
+                <p class="small mb-2">Your data rights:</p>
+                <ul class="small mb-0">
+                    <li>Right to access your data</li>
+                    <li>Right to export your data</li>
+                    <li>Right to request deletion</li>
+                    <li>Right to withdraw consent</li>
+                </ul>
+                <a href="{% url 'dashboard:export_data' %}" class="btn btn-sm btn-info text-white mt-3 w-100">
+                    <i class="bi bi-download"></i> Export My Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
