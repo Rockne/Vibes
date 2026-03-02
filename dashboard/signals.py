@@ -5,6 +5,7 @@ Automatically creates user profiles and generates insights.
 """
 
 from django.db.models.signals import post_save
+from django.db.models import Sum
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from .models import UserProfile, AIUsageLog, UserInsight
@@ -34,16 +35,15 @@ def generate_usage_insights(sender, instance, created, **kwargs):
     
     # Check if user has excessive usage today
     from django.utils import timezone
-    from datetime import timedelta
-    
+
     today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_usage = AIUsageLog.objects.filter(
+    today_tokens = AIUsageLog.objects.filter(
         user=user,
         timestamp__gte=today_start
-    ).count()
+    ).aggregate(total_tokens=Sum('tokens_used'))['total_tokens'] or 0
     
     # Generate warning insight if usage is high
-    if today_usage >= 50 and not UserInsight.objects.filter(
+    if today_tokens >= 2000 and not UserInsight.objects.filter(
         user=user,
         insight_type='warning',
         generated_at__gte=today_start
@@ -52,7 +52,7 @@ def generate_usage_insights(sender, instance, created, **kwargs):
             user=user,
             insight_type='warning',
             title='High AI Usage Today',
-            message=f'You have logged {today_usage} AI interactions today. Consider taking breaks and reflecting on your learning process.',
+            message=f'You have used {today_tokens} tokens today. Consider taking breaks and reflecting on your learning process.',
             priority='high'
         )
     
